@@ -76,5 +76,5 @@ for s, subj in enumerate(SUBJECTS):
                                     'Rotation': rot[tr]})
         df = pd.concat([df, df_time])
         
-    df.to_csv('/run/media/okapi/TOSHIBA EXT/for_r/' + subj + '_M1_superlet_20_alpha10_and_12_beta15_and_betavolume_rot_inh_-08to03_allepo_centered_ind_vert.csv')
+    df.to_csv('/run/media/okapi/TOSHIBA EXT/for_r/' + subj + '_M1_superlet_20_alpha10_and_12_beta15_and_betavolume_rot_inh_-08to03_allepo_zscored_ind_vert.csv')
             
