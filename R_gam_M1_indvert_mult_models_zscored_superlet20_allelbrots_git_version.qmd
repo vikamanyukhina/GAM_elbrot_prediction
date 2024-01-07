@@ -1,0 +1,389 @@
+---
+title: "R_gam_M1_diff_dfs_and_models_superlet20_prevmodels_logpower_allelbrots_zscored"
+format: html
+editor: visual
+---
+
+# Load data & libs
+
+```{r}
+library(mgcv)
+library(nlme)
+library(abind)
+library(gratia)
+library(ggeffects)
+library(emmeans)
+library(tidyverse)
+library(itsadug)
+```
+
+```{r}
+subjects = c('S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'S08', 'S09', 'S10', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16')
+
+print('Load data')
+df_subj <- data.frame()
+for (s in 1:length(subjects)) {
+  subj <- subjects[s]
+  print(subj)
+  df <-read.csv(paste('/run/media/okapi/TOSHIBA EXT/for_r/', subj, '_M1_superlet_20_alpha10_and_12_beta15_and_betavolume_rot_inh_-08to03_allepo_zscored_ind_vert.csv', sep=''))
+  df_subj <- rbind(df_subj,df)
+}
+
+df <- df_subj
+df$Subject <- as.factor(df$Subject)
+```
+
+# log-powers, unlog-beta volume + z-scored data + without excluding large elbow rotations
+
+## Visualize data
+
+### Elbow rotation distribution in subjects
+
+```{r}
+df %>%
+  filter(Rotation < .5) %>%
+  distinct(Subject, Trial, Rotation) %>%
+  ggplot(aes(x = Rotation, fill = (Rotation<=.05))) +
+  facet_wrap(~ Subject, ncol = 4) +
+  geom_histogram(breaks = seq(0, .5, .05))
+```
+
+### Alpha Power 10 Hz distribution in subjects
+
+```{r}
+df %>%
+  filter(Rotation < .5) %>%
+  ggplot(aes(x = AlphaPower10)) +
+  facet_wrap(~ Subject, ncol = 4) +
+  geom_histogram(bins=50)
+```
+
+### Alpha Power 12 Hz distribution in subjects
+
+```{r}
+df %>%
+  filter(Rotation < .5) %>%
+  ggplot(aes(x = AlphaPower12)) +
+  facet_wrap(~ Subject, ncol = 4) +
+  geom_histogram(bins=50)
+```
+
+### Beta Power 15 Hz distribution in subjects
+
+```{r}
+df %>%
+  filter(Rotation < .5) %>%
+  ggplot(aes(x = BetaPower15)) +
+  facet_wrap(~ Subject, ncol = 4) +
+  geom_histogram(bins=50)
+```
+
+### Beta volume distribution in subjects
+
+```{r}
+df %>%
+  filter(Rotation < .5) %>%
+  ggplot(aes(x = BetaVolume)) +
+  facet_wrap(~ Subject, ncol = 4) +
+  geom_histogram(bins=50)
+```
+
+### Elbow rotation overall, histogram:
+
+```{r}
+hist(df$Rotation, breaks = 50)
+```
+
+### Alpha Power 10Hz overall, histogram:
+
+```{r}
+hist(df$AlphaPower10, breaks = 50)
+```
+
+### Alpha Power 12Hz overall, histogram:
+
+```{r}
+hist(df$AlphaPower12, breaks = 50)
+```
+
+### Beta Power 15Hz overall, histogram:
+
+```{r}
+hist(df$BetaPower15, breaks = 50)
+```
+
+### Beta Volume overall, histogram:
+
+```{r}
+hist(df$BetaVolume, breaks=50)
+```
+
+## Run models + visualize predictions
+
+### Alpha 10Hz only + trials: predict Elbow Rotation
+
+```{r}
+model_a10 = bam(Rotation ~ s(Trial, Subject, bs='re') +te(AlphaPower10,Time, k=5),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_a10, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower10 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) + geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "AlphaPower10")
+```
+
+### Alpha 10Hz only + no trials: predict Elbow Rotation
+
+```{r}
+model_a10_notri = bam(Rotation ~ te(AlphaPower10,Time,k=5), # + s(Time) +ti(AlphaPower,Time),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_a10_notri, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower10 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "AlphaPower10")
+```
+
+### Alpha 12Hz only + trials: predict Elbow Rotation
+
+```{r}
+model_a12 = bam(Rotation ~ s(Trial, Subject, bs='re') +te(AlphaPower12,Time),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_a12, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower12 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) + geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "AlphaPower12")
+```
+
+### Alpha 12Hz only + no trials: predict Elbow Rotation
+
+```{r}
+model_a12_notri = bam(Rotation ~ te(AlphaPower12,Time), 
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_a12_notri, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower12 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "AlphaPower12")
+```
+
+### Beta 15Hz only + trials: predict Elbow Rotation
+
+```{r}
+model_b15 = bam(Rotation ~ s(Trial, Subject, bs='re') +te(BetaPower15,Time,k=5),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_b15, terms = c("Time [-0.8:0.3, by=0.1]", "BetaPower15 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) + geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "BetaPower15")
+```
+
+### Beta 15Hz only + no trials: predict Elbow Rotation
+
+```{r}
+model_b15_notri = bam(Rotation ~ te(BetaPower15,Time), 
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_b15_notri, terms = c("Time [-0.8:0.3, by=0.1]", "BetaPower15 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "BetaPower15")
+```
+
+### Beta volume only + trials: predict Elbow Rotation
+
+```{r}
+model_b = bam(Rotation ~ s(Trial, Subject, bs='re') +te(BetaVolume,Time), #s(Time) +ti(BetaVolume,Time),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_b, terms = c("Time [-0.8:0.3, by=0.1]", "BetaVolume [-1.5:3, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "BetaVolume")
+```
+
+### Beta volume only + no trials: predict Elbow Rotation
+
+```{r}
+model_b_notri = bam(Rotation ~ te(BetaVolume,Time),
+                data=df, method='REML')
+```
+
+```{r}
+(ggemmeans(model_b_notri, terms = c("Time [-0.8:0.3, by=0.1]", "BetaVolume [-1.5:3, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c() + xlab('Time, s') + ylab('Elbow Rotation') +labs(color = "BetaVolume")
+```
+
+### Alpha & Beta (all factors: alpha 10Hz, alpha 12Hz, beta 15Hz, beta volume) + trials: predict Elbow Rotation
+
+```{r}
+set.seed(1)
+model_ab = bam(Rotation ~ s(Trial, Subject, bs='re') +te(AlphaPower10,Time,k=5) +te(AlphaPower12,Time,k=5) + te(BetaVolume,Time,k=5) +te(BetaPower15,Time),
+                data=df, method='REML')
+```
+
+#### Alpha Power 10Hz prediction + trials
+
+```{r}
+(ggemmeans(model_ab, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower10 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "AlphaPower10")
+```
+
+#### Alpha Power 12Hz prediction + trials
+
+```{r}
+(ggemmeans(model_ab, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower12 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "AlphaPower12")
+```
+
+#### Beta Power 15Hz prediction + trials
+
+```{r}
+(ggemmeans(model_ab, terms = c("Time [-0.8:0.3, by=0.1]", "BetaPower15 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "BetaPower15")
+```
+
+#### Beta Volume prediction + trials
+
+```{r}
+(ggemmeans(model_ab, terms = c("Time [-0.8:0.3, by=0.1]", "BetaVolume [-1.5:3, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "BetaVolume")
+```
+
+### Alpha & Beta (all factors: alpha 10Hz, alpha 12Hz, beta 15Hz, beta volume) + no trials: predict Elbow Rotation
+
+```{r}
+set.seed(1)
+model_ab_notri = bam(Rotation ~ te(AlphaPower10,Time) +te(AlphaPower12,Time) + te(BetaVolume,Time,k=5) +te(BetaPower15,Time),
+                data=df, method='REML')
+```
+
+#### Alpha Power 10Hz prediction + no trials
+
+```{r}
+(ggemmeans(model_ab_notri, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower10 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "AlphaPower10")
+```
+
+#### Alpha Power 12Hz prediction + no trials
+
+```{r}
+(ggemmeans(model_ab_notri, terms = c("Time [-0.8:0.3, by=0.1]", "AlphaPower12 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "AlphaPower12")
+```
+
+#### Beta Power 15Hz prediction + no trials
+
+```{r}
+(ggemmeans(model_ab_notri, terms = c("Time [-0.8:0.3, by=0.1]", "BetaPower15 [-2:2, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "BetaPower15")
+```
+
+#### Beta Volume prediction + no trials
+
+```{r}
+(ggemmeans(model_ab_notri, terms = c("Time [-0.8:0.3, by=0.1]", "BetaVolume [-1.5:3, by=0.2]"))) %>% ggplot(aes(x = x, y = predicted, ymin=conf.low, ymax=conf.high, color=as.numeric(as.character(group)), group = group)) +     geom_line() + scale_color_viridis_c()+ xlab('Time, s') + ylab('Elbow Rotation')  +labs(color = "BetaVolume")
+```
+
+## Summary of models
+
+```{r}
+summary(model_a10)
+```
+
+```{r}
+summary(model_a12)
+```
+
+```{r}
+summary(model_a10_notri)
+```
+
+```{r}
+summary(model_a12_notri)
+```
+
+```{r}
+summary(model_b15)
+```
+
+```{r}
+summary(model_b)
+```
+
+```{r}
+summary(model_b15_notri)
+```
+
+```{r}
+summary(model_b_notri)
+```
+
+```{r}
+summary(model_ab)
+```
+
+```{r}
+summary(model_ab_notri)
+```
+
+## AIC model comparison
+
+```{r}
+AIC(model_a10) - AIC(model_a10_notri)
+```
+
+```{r}
+AIC(model_a12) - AIC(model_a12_notri)
+```
+
+```{r}
+AIC(model_b15) - AIC(model_b15_notri)
+```
+
+```{r}
+AIC(model_b) - AIC(model_b_notri)
+```
+
+```{r}
+AIC(model_a12) - AIC(model_a10)
+```
+
+```{r}
+AIC(model_b15) - AIC(model_a12)
+```
+
+```{r}
+AIC(model_b15) - AIC(model_b)
+```
+
+```{r}
+AIC(model_ab) - AIC(model_b15)
+```
+
+```{r}
+AIC(model_ab) - AIC(model_ab_notri)
+```
+
+## Check models
+
+```{r}
+gam.check(model_a10)
+```
+
+```{r}
+gam.check(model_a12)
+```
+
+```{r}
+gam.check(model_b15)
+```
+
+```{r}
+gam.check(model_b)
+```
+
+```{r}
+gam.check(model_a10_notri)
+```
+
+```{r}
+gam.check(model_b15_notri)
+```
+
+```{r}
+set.seed(1)
+gam.check(model_ab)
+```
+
+```{r}
+set.seed(1)
+gam.check(model_ab_notri)
+```
